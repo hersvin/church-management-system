@@ -1,0 +1,207 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-ink-sans), "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-ink-mono), "IBM Plex Mono", ui-monospace, monospace;
+  --font-heading: var(--font-ink-sans), "IBM Plex Sans", ui-sans-serif, sans-serif;
+  /* Flat print: shadow utilities draw nothing. Focus rings use ring-* and are unaffected. */
+  --shadow-2xs: 0 0 #0000;
+  --shadow-xs: 0 0 #0000;
+  --shadow-sm: 0 0 #0000;
+  --shadow: 0 0 #0000;
+  --shadow-md: 0 0 #0000;
+  --shadow-lg: 0 0 #0000;
+  --shadow-xl: 0 0 #0000;
+  --shadow-2xl: 0 0 #0000;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/*
+ * E-ink paper palette for the admin app: near-black ink on warm paper, 1px hairlines do the
+ * separating, no drop shadows. States are ink glyphs (components/status-glyph.tsx); the only hue
+ * is signal red, kept for failures, errors, and destructive actions. Light only.
+ * Contrast on paper: ink 17.6:1, secondary ink #69675f 5.0:1, signal red 4.9:1 (WCAG 2).
+ */
+:root {
+  --paper: #f4f1ea;
+  --paper-raised: #faf8f3;
+  --paper-sunk: #ece8df;
+  --ink: #141310;
+  --ink-2: #69675f;
+  --hairline: #d6d3cc;
+  --signal: #c8321e;
+
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: var(--paper-raised);
+  --card-foreground: var(--ink);
+  --popover: var(--paper-raised);
+  --popover-foreground: var(--ink);
+  --primary: var(--ink);
+  --primary-foreground: var(--paper-raised);
+  --secondary: var(--paper-sunk);
+  --secondary-foreground: var(--ink);
+  --muted: var(--paper-sunk);
+  --muted-foreground: var(--ink-2);
+  --accent: var(--paper-sunk);
+  --accent-foreground: var(--ink);
+  --destructive: var(--signal);
+  --border: var(--hairline);
+  --input: var(--hairline);
+  --ring: var(--ink);
+  --chart-1: var(--ink);
+  --chart-2: #4a4843;
+  --chart-3: #69675f;
+  --chart-4: #9a978f;
+  --chart-5: var(--hairline);
+  --radius: 0.375rem;
+  --sidebar: var(--paper-raised);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--ink);
+  --sidebar-primary-foreground: var(--paper-raised);
+  --sidebar-accent: var(--paper);
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: var(--hairline);
+  --sidebar-ring: var(--ink);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-heading tracking-tight;
+  }
+  ::selection {
+    background: var(--ink);
+    color: var(--paper-raised);
+  }
+  :focus-visible {
+    outline-color: var(--ink);
+  }
+}
+
+@layer utilities {
+  /* Every number, id, date, and code reads in mono with figures that line up in columns. */
+  .font-data {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+  /* Uppercase micro-label for section names and table headers. */
+  .micro-label {
+    font-size: 11px;
+    line-height: 1.2;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+  }
+  /* Faint dot grain for the one hero surface on a screen. */
+  .ink-grain {
+    background-image: radial-gradient(rgb(20 19 16 / 0.06) 0.5px, transparent 0.6px);
+    background-size: 4px 4px;
+  }
+}
+
+@keyframes ink-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes ink-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* Each admin page arrives top to bottom: header first, then its blocks, 60 ms apart. */
+.ink-page > * {
+  animation: ink-rise 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.ink-page > :nth-child(2) { animation-delay: 60ms; }
+.ink-page > :nth-child(3) { animation-delay: 120ms; }
+.ink-page > :nth-child(4) { animation-delay: 180ms; }
+.ink-page > :nth-child(5) { animation-delay: 240ms; }
+.ink-page > :nth-child(n + 6) { animation-delay: 300ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ink-page > * {
+    animation: none;
+  }
+}
+
+/* Print (reports save as PDF through the browser): only the page content, ink on paper. */
+@media print {
+  [data-slot="sidebar-gap"],
+  [data-slot="sidebar-container"],
+  [data-slot="sidebar-trigger"],
+  [data-print="hide"] {
+    display: none !important;
+  }
+  [data-slot="sidebar-inset"] {
+    margin: 0 !important;
+  }
+  .ink-page,
+  .ink-page * {
+    animation: none !important;
+  }
+  @page {
+    margin: 14mm;
+  }
+}

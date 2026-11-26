@@ -1,0 +1,691 @@
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "cjs"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Branch {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  code      String   @unique
+  address   String?
+  phone     String?
+  email     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users      User[]
+  settings   Setting[]
+  households Household[]
+  members    Member[]
+  ministries Ministry[]
+  rooms      Room[]
+  events     Event[]
+  terms      SchoolTerm[]
+  services   Service[]
+  checkIns   CheckIn[]
+}
+
+model Role {
+  id          String   @id @default(uuid()) @db.Uuid
+  key         String   @unique
+  name        String
+  permissions String[]
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users User[]
+}
+
+model User {
+  id           String    @id @default(uuid()) @db.Uuid
+  email        String    @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  isActive     Boolean   @default(true)
+  tokenVersion Int       @default(0)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  roleId    String     @db.Uuid
+  role      Role       @relation(fields: [roleId], references: [id])
+  branchId  String?    @db.Uuid
+  branch    Branch?    @relation(fields: [branchId], references: [id])
+  /// The member record this account belongs to; lets a member use the app for themselves.
+  memberId  String?    @unique @db.Uuid
+  member    Member?    @relation(fields: [memberId], references: [id])
+  photo     UserPhoto?
+  songs     Song[]     @relation("SongCreatedBy")
+  playlists Playlist[] @relation("PlaylistCreatedBy")
+
+  @@index([branchId])
+}
+
+model Setting {
+  id        String   @id @default(uuid()) @db.Uuid
+  key       String
+  value     Json
+  updatedAt DateTime @updatedAt
+
+  branchId String? @db.Uuid
+  branch   Branch? @relation(fields: [branchId], references: [id])
+
+  @@unique([key, branchId])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  actorId   String?  @db.Uuid
+  action    String
+  entity    String
+  entityId  String?
+  branchId  String?  @db.Uuid
+  changes   Json?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([actorId])
+  @@index([createdAt])
+}
+
+enum MemberStatus {
+  VISITOR
+  REGULAR
+  MEMBER
+  INACTIVE
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  UNSPECIFIED
+}
+
+enum CivilStatus {
+  SINGLE
+  MARRIED
+  WIDOWED
+  SEPARATED
+}
+
+enum HouseholdRole {
+  HEAD
+  SPOUSE
+  CHILD
+  OTHER
+}
+
+model Household {
+  id        String    @id @default(uuid()) @db.Uuid
+  name      String
+  address   String?
+  phone     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  branchId String @db.Uuid
+  branch   Branch @relation(fields: [branchId], references: [id])
+
+  members Member[]
+
+  @@index([branchId])
+  @@index([name])
+}
+
+model Member {
+  id             String         @id @default(uuid()) @db.Uuid
+  firstName      String
+  middleName     String?
+  lastName       String
+  suffix         String?
+  gender         Gender         @default(UNSPECIFIED)
+  civilStatus    CivilStatus?
+  birthDate      DateTime?      @db.Date
+  email          String?
+  phone          String?
+  address        String?
+  occupation     String?
+  status         MemberStatus   @default(VISITOR)
+  membershipDate DateTime?      @db.Date
+  baptismDate    DateTime?      @db.Date
+  notes          String?
+  householdRole  HouseholdRole?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  deletedAt      DateTime?
+
+  branchId    String     @db.Uuid
+  branch      Branch     @relation(fields: [branchId], references: [id])
+  householdId String?    @db.Uuid
+  household   Household? @relation(fields: [householdId], references: [id])
+
+  statusHistory MemberStatusHistory[]
+  ministries    MinistryMember[]
+  registrations EventRegistration[]
+  teaching      ClassTeacher[]
+  enrollments   Enrollment[]
+  checkIns      CheckIn[]             @relation("CheckInMember")
+  user          User?
+  joinRequests  MinistryJoinRequest[]
+  guardianOf    CheckIn[]             @relation("CheckInGuardian")
+  pickedUp      CheckIn[]             @relation("CheckInPickedUpBy")
+
+  @@index([branchId, status])
+  @@index([householdId])
+  @@index([lastName, firstName])
+}
+
+model MemberStatusHistory {
+  id          String        @id @default(uuid()) @db.Uuid
+  fromStatus  MemberStatus?
+  toStatus    MemberStatus
+  note        String?
+  changedById String?       @db.Uuid
+  changedAt   DateTime      @default(now())
+
+  memberId String @db.Uuid
+  member   Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId, changedAt])
+}
+
+enum MinistryCategory {
+  WORSHIP
+  CHILDREN
+  YOUTH
+  ADULTS
+  OUTREACH
+  PRAYER
+  HOSPITALITY
+  MEDIA
+  OTHER
+}
+
+enum MinistryPosition {
+  LEADER
+  COLEADER
+  MEMBER
+}
+
+model Ministry {
+  id              String           @id @default(uuid()) @db.Uuid
+  name            String
+  description     String?
+  category        MinistryCategory @default(OTHER)
+  meetingSchedule String?
+  isActive        Boolean          @default(true)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  deletedAt       DateTime?
+
+  branchId String @db.Uuid
+  branch   Branch @relation(fields: [branchId], references: [id])
+
+  roles        MinistryRole[]
+  members      MinistryMember[]
+  events       Event[]
+  joinRequests MinistryJoinRequest[]
+
+  @@index([branchId, category])
+  @@index([name])
+}
+
+model MinistryRole {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  createdAt DateTime @default(now())
+
+  ministryId String   @db.Uuid
+  ministry   Ministry @relation(fields: [ministryId], references: [id], onDelete: Cascade)
+
+  assignments MinistryMember[]
+
+  @@unique([ministryId, name])
+}
+
+/// Roster entry. Leaving sets leftAt so participation history is kept.
+model MinistryMember {
+  id       String           @id @default(uuid()) @db.Uuid
+  position MinistryPosition @default(MEMBER)
+  joinedAt DateTime         @default(now())
+  leftAt   DateTime?
+
+  ministryId     String        @db.Uuid
+  ministry       Ministry      @relation(fields: [ministryId], references: [id], onDelete: Cascade)
+  memberId       String        @db.Uuid
+  member         Member        @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  ministryRoleId String?       @db.Uuid
+  ministryRole   MinistryRole? @relation(fields: [ministryRoleId], references: [id], onDelete: SetNull)
+
+  @@index([ministryId, leftAt])
+  @@index([memberId, leftAt])
+}
+
+enum JoinRequestStatus {
+  PENDING
+  APPROVED
+  DECLINED
+}
+
+/// A member asking to join a ministry from the app; a leader approves or declines it.
+model MinistryJoinRequest {
+  id          String            @id @default(uuid()) @db.Uuid
+  status      JoinRequestStatus @default(PENDING)
+  note        String?
+  createdAt   DateTime          @default(now())
+  decidedAt   DateTime?
+  decidedById String?           @db.Uuid
+
+  ministryId String   @db.Uuid
+  ministry   Ministry @relation(fields: [ministryId], references: [id], onDelete: Cascade)
+  memberId   String   @db.Uuid
+  member     Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([ministryId, status])
+  @@index([memberId, createdAt])
+}
+
+enum BookingStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum EventCategory {
+  SERVICE
+  MEETING
+  CLASS
+  OUTREACH
+  FELLOWSHIP
+  CONFERENCE
+  OTHER
+}
+
+enum EventStatus {
+  SCHEDULED
+  CANCELLED
+}
+
+model Room {
+  id          String    @id @default(uuid()) @db.Uuid
+  name        String
+  capacity    Int?
+  location    String?
+  description String?
+  features    String[]
+  /// Hire rate per hour in pesos; null means no rate is set.
+  hourlyRate  Decimal?  @db.Decimal(10, 2)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  branchId String @db.Uuid
+  branch   Branch @relation(fields: [branchId], references: [id])
+
+  bookings RoomBooking[]
+  events   Event[]
+  classes  SchoolClass[]
+
+  @@index([branchId])
+}
+
+/// Approved bookings for one room may not overlap (enforced by an exclusion constraint).
+model RoomBooking {
+  id            String        @id @default(uuid()) @db.Uuid
+  startsAt      DateTime      @db.Timestamptz(3)
+  endsAt        DateTime      @db.Timestamptz(3)
+  purpose       String
+  status        BookingStatus @default(PENDING)
+  decisionNote  String?
+  requestedById String?       @db.Uuid
+  decidedById   String?       @db.Uuid
+  decidedAt     DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  roomId  String  @db.Uuid
+  room    Room    @relation(fields: [roomId], references: [id])
+  eventId String? @unique @db.Uuid
+  event   Event?  @relation(fields: [eventId], references: [id], onDelete: SetNull)
+
+  @@index([roomId, startsAt])
+  @@index([status])
+}
+
+model Event {
+  id                   String        @id @default(uuid()) @db.Uuid
+  title                String
+  description          String?
+  category             EventCategory @default(OTHER)
+  startsAt             DateTime      @db.Timestamptz(3)
+  endsAt               DateTime      @db.Timestamptz(3)
+  capacity             Int?
+  registrationRequired Boolean       @default(false)
+  status               EventStatus   @default(SCHEDULED)
+  cancelReason         String?
+  /// Occurrences created together share a seriesId.
+  seriesId             String?       @db.Uuid
+  createdById          String?       @db.Uuid
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  branchId   String    @db.Uuid
+  branch     Branch    @relation(fields: [branchId], references: [id])
+  ministryId String?   @db.Uuid
+  ministry   Ministry? @relation(fields: [ministryId], references: [id])
+  roomId     String?   @db.Uuid
+  room       Room?     @relation(fields: [roomId], references: [id])
+
+  booking       RoomBooking?
+  registrations EventRegistration[]
+  checkIns      CheckIn[]
+
+  @@index([branchId, startsAt])
+  @@index([seriesId, startsAt])
+  @@index([ministryId])
+}
+
+model EventRegistration {
+  id          String    @id @default(uuid()) @db.Uuid
+  guestName   String?
+  guestEmail  String?
+  guestPhone  String?
+  createdAt   DateTime  @default(now())
+  cancelledAt DateTime?
+
+  eventId  String  @db.Uuid
+  event    Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  memberId String? @db.Uuid
+  member   Member? @relation(fields: [memberId], references: [id])
+
+  @@index([eventId, cancelledAt])
+}
+
+enum ClassAudience {
+  CHILDREN
+  YOUTH
+  ADULTS
+}
+
+enum TeacherRole {
+  LEAD
+  ASSISTANT
+}
+
+enum EnrollmentStatus {
+  ENROLLED
+  COMPLETED
+  DROPPED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  LATE
+  ABSENT
+  EXCUSED
+}
+
+model SchoolTerm {
+  id        String    @id @default(uuid()) @db.Uuid
+  name      String
+  startsOn  DateTime  @db.Date
+  endsOn    DateTime  @db.Date
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  branchId String @db.Uuid
+  branch   Branch @relation(fields: [branchId], references: [id])
+
+  classes SchoolClass[]
+
+  @@index([branchId, startsOn])
+}
+
+model SchoolClass {
+  id          String        @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  audience    ClassAudience @default(CHILDREN)
+  ageRange    String?
+  /// 0 = Sunday ... 6 = Saturday
+  meetingDay  Int?
+  startTime   String?
+  endTime     String?
+  capacity    Int?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  deletedAt   DateTime?
+
+  termId String     @db.Uuid
+  term   SchoolTerm @relation(fields: [termId], references: [id])
+  roomId String?    @db.Uuid
+  room   Room?      @relation(fields: [roomId], references: [id])
+
+  teachers    ClassTeacher[]
+  enrollments Enrollment[]
+  sessions    ClassSession[]
+
+  @@index([termId])
+}
+
+model ClassTeacher {
+  id        String      @id @default(uuid()) @db.Uuid
+  role      TeacherRole @default(LEAD)
+  createdAt DateTime    @default(now())
+
+  classId  String      @db.Uuid
+  class    SchoolClass @relation(fields: [classId], references: [id], onDelete: Cascade)
+  memberId String      @db.Uuid
+  member   Member      @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([classId, memberId])
+}
+
+/// Dropped and completed enrollments are kept for history; one active enrollment per student per class.
+model Enrollment {
+  id          String           @id @default(uuid()) @db.Uuid
+  status      EnrollmentStatus @default(ENROLLED)
+  grade       String?
+  note        String?
+  enrolledAt  DateTime         @default(now())
+  completedAt DateTime?
+  droppedAt   DateTime?
+
+  classId  String      @db.Uuid
+  class    SchoolClass @relation(fields: [classId], references: [id], onDelete: Cascade)
+  memberId String      @db.Uuid
+  member   Member      @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  attendance SessionAttendance[]
+
+  @@index([classId, status])
+  @@index([memberId])
+}
+
+model ClassSession {
+  id        String   @id @default(uuid()) @db.Uuid
+  date      DateTime @db.Date
+  topic     String?
+  notes     String?
+  createdAt DateTime @default(now())
+
+  classId String      @db.Uuid
+  class   SchoolClass @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  attendance SessionAttendance[]
+
+  @@unique([classId, date])
+}
+
+model SessionAttendance {
+  id           String           @id @default(uuid()) @db.Uuid
+  status       AttendanceStatus
+  note         String?
+  recordedAt   DateTime         @default(now())
+  recordedById String?          @db.Uuid
+
+  sessionId    String       @db.Uuid
+  session      ClassSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  enrollmentId String       @db.Uuid
+  enrollment   Enrollment   @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, enrollmentId])
+  @@index([enrollmentId])
+}
+
+enum CheckInKind {
+  ATTENDEE
+  CHILD
+}
+
+/// A worship gathering whose attendance is counted (for example, Sunday 9 AM).
+model Service {
+  id          String    @id @default(uuid()) @db.Uuid
+  name        String
+  startsAt    DateTime  @db.Timestamptz(3)
+  /// Usher headcount; check-ins are a subset of it.
+  headcount   Int?
+  notes       String?
+  createdById String?   @db.Uuid
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  branchId String @db.Uuid
+  branch   Branch @relation(fields: [branchId], references: [id])
+
+  checkIns CheckIn[]
+
+  @@index([branchId, startsAt])
+}
+
+/// One person at one service or event. Child rows carry a guardian and a pickup code until checked out.
+model CheckIn {
+  id                   String      @id @default(uuid()) @db.Uuid
+  kind                 CheckInKind @default(ATTENDEE)
+  guestName            String?
+  guestPhone           String?
+  guardianName         String?
+  guardianPhone        String?
+  careNote             String?
+  pickupCode           String?
+  failedPickupAttempts Int         @default(0)
+  checkedInAt          DateTime    @default(now())
+  checkedInById        String?     @db.Uuid
+  checkedOutAt         DateTime?
+  checkedOutById       String?     @db.Uuid
+  pickedUpByName       String?
+  overrideReason       String?
+
+  branchId           String   @db.Uuid
+  branch             Branch   @relation(fields: [branchId], references: [id])
+  serviceId          String?  @db.Uuid
+  service            Service? @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  eventId            String?  @db.Uuid
+  event              Event?   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  memberId           String?  @db.Uuid
+  member             Member?  @relation("CheckInMember", fields: [memberId], references: [id])
+  guardianMemberId   String?  @db.Uuid
+  guardianMember     Member?  @relation("CheckInGuardian", fields: [guardianMemberId], references: [id])
+  pickedUpByMemberId String?  @db.Uuid
+  pickedUpByMember   Member?  @relation("CheckInPickedUpBy", fields: [pickedUpByMemberId], references: [id])
+
+  @@index([serviceId, checkedInAt])
+  @@index([eventId, checkedInAt])
+  @@index([memberId, checkedInAt])
+  @@index([branchId, checkedInAt])
+}
+
+/// The account's profile photo, kept apart from User so account queries never load image bytes.
+model UserPhoto {
+  userId    String   @id @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mimeType  String
+  data      Bytes
+  updatedAt DateTime @updatedAt
+}
+
+enum SongSource {
+  ITUNES
+  MUSICBRAINZ
+  MANUAL
+}
+
+/// The church's music library. Catalog songs keep their source and ID; key and tempo are added by the team.
+model Song {
+  id          String     @id @default(uuid()) @db.Uuid
+  title       String
+  artist      String?
+  composer    String?
+  originalKey String?
+  bpm         Int?
+  genre       String?
+  language    String?
+  source      SongSource
+  externalId  String?
+  sourceUrl   String?
+  previewUrl  String?
+  artworkUrl  String?
+  /// Lyrics with chords in square brackets (ChordPro style), in the original key. Entered by the team from licensed sheets.
+  chart       String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  createdById String @db.Uuid
+  createdBy   User   @relation("SongCreatedBy", fields: [createdById], references: [id])
+
+  playlistSongs PlaylistSong[]
+
+  @@unique([source, externalId])
+  @@index([title])
+}
+
+model Playlist {
+  id          String    @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  createdById String @db.Uuid
+  createdBy   User   @relation("PlaylistCreatedBy", fields: [createdById], references: [id])
+
+  songs PlaylistSong[]
+
+  @@index([deletedAt, updatedAt])
+}
+
+/// One song in a playlist at a position, with its own key. The original key is copied so later library edits do not shift a saved set.
+model PlaylistSong {
+  id                 String   @id @default(uuid()) @db.Uuid
+  sequence           Int
+  originalKey        String?
+  selectedKey        String?
+  transposeSemitones Int      @default(0)
+  notes              String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  playlistId String   @db.Uuid
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  songId     String   @db.Uuid
+  song       Song     @relation(fields: [songId], references: [id])
+
+  @@unique([playlistId, sequence])
+  @@index([songId])
+}

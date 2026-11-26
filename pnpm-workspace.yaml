@@ -1,0 +1,13 @@
+packages:
+  - api
+  - web
+  - mobile
+  - packages/*
+allowBuilds:
+  "@swc/core": true
+  esbuild: true
+  prisma: true
+  "@prisma/engines": true
+  sharp: false
+  unrs-resolver: false
+  "@scarf/scarf": false

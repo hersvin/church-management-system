@@ -1,0 +1,20 @@
+{
+  "name": "cms",
+  "private": true,
+  "packageManager": "pnpm@12.11.2",
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck",
+    "dev:api": "pnpm --filter @cms/api start:dev",
+    "dev:web": "pnpm --filter @cms/web dev",
+    "db:migrate": "pnpm --filter @cms/api db:migrate",
+    "db:deploy": "pnpm --filter @cms/api db:deploy",
+    "db:status": "pnpm --filter @cms/api db:status",
+    "db:seed": "pnpm --filter @cms/api db:seed",
+    "db:reset": "pnpm --filter @cms/api db:reset",
+    "db:studio": "pnpm --filter @cms/api db:studio",
+    "db:generate": "pnpm --filter @cms/api db:generate",
+    "db:migrate:create": "pnpm --filter @cms/api db:migrate:create"
+  }
+}
